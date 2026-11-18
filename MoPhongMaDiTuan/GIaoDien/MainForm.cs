@@ -48,11 +48,15 @@ namespace MoPhongMaDiTuan.GiaoDien
             KhoiTaoGiaoDien();
         }
 
+        // Đổi kích thước thiết kế (ở tỉ lệ 100%) sang điểm ảnh thật theo DPI của màn hình
+        private int S(int giaTri) => this.LogicalToDeviceUnits(giaTri);
+
         private void KhoiTaoGiaoDien()
         {
             this.Text = "Mô phỏng Bài toán Mã đi tuần - C# OOP WinForms";
-            this.Size = new Size(900, 700);
-            this.MinimumSize = new Size(760, 660);
+            // Kích thước tính theo DPI màn hình (máy đặt tỉ lệ 125%, 150%... vẫn hiển thị đủ chữ)
+            this.Size = new Size(S(900), S(700));
+            this.MinimumSize = new Size(S(760), S(660));
             this.StartPosition = FormStartPosition.CenterScreen;
 
             _board = new Board(8);
@@ -63,28 +67,49 @@ namespace MoPhongMaDiTuan.GiaoDien
 
             Font fontTieuDe = new Font("Segoe UI", 9.5f, FontStyle.Bold);
             Font fontThuong = new Font("Segoe UI", 9.5f);
+            int beRongNoiDung = S(250);   // bề rộng vùng nội dung của bảng điều khiển
 
-            // --- PANEL ĐIỀU KHIỂN BÊN PHẢI ---
-            Panel pnlRight = new Panel { Dock = DockStyle.Right, Width = 250, Padding = new Padding(10), BackColor = Color.WhiteSmoke, AutoScroll = true };
+            // --- BẢNG ĐIỀU KHIỂN BÊN PHẢI: xếp dọc tự động, không dùng tọa độ cố định ---
+            TableLayoutPanel pnlRight = new TableLayoutPanel
+            {
+                Dock = DockStyle.Right,
+                Width = beRongNoiDung + S(30),
+                Padding = new Padding(S(12), S(8), S(12), S(8)),
+                BackColor = Color.WhiteSmoke,
+                ColumnCount = 1,
+                AutoScroll = true,
+                GrowStyle = TableLayoutPanelGrowStyle.AddRows
+            };
+            pnlRight.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-            Label lblSize = new Label { Text = "1. Kích thước bàn cờ (N):", AutoSize = true, Location = new Point(15, 15), Font = fontTieuDe };
-            _cboKichThuoc = new ComboBox { Location = new Point(15, 38), Width = 210, DropDownStyle = ComboBoxStyle.DropDownList };
+            // Thêm một điều khiển vào hàng tiếp theo, cách điều khiển phía trên khoangCach điểm ảnh
+            void Them(Control c, int khoangCach = 4, bool keoGian = true)
+            {
+                c.Margin = new Padding(0, S(khoangCach), 0, 0);
+                c.Anchor = keoGian ? (AnchorStyles.Left | AnchorStyles.Right) : AnchorStyles.Left;
+                pnlRight.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                pnlRight.Controls.Add(c);
+            }
+            Label TaoNhan(string text, Font font) =>
+                new Label { Text = text, AutoSize = true, MaximumSize = new Size(beRongNoiDung, 0), Font = font };
+
+            Label lblSize = TaoNhan("1. Kích thước bàn cờ (N):", fontTieuDe);
+            _cboKichThuoc = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Font = fontThuong };
             _cboKichThuoc.Items.AddRange(new object[] { "3 x 3", "4 x 4", "5 x 5", "6 x 6", "7 x 7", "8 x 8" });
             _cboKichThuoc.SelectedIndex = 5;
             _cboKichThuoc.SelectedIndexChanged += (s, e) => DungVaResetBanCo();
 
-            Label lblAlgo = new Label { Text = "2. Thuật toán giải:", AutoSize = true, Location = new Point(15, 75), Font = fontTieuDe };
-            _cboThuatToan = new ComboBox { Location = new Point(15, 98), Width = 210, DropDownStyle = ComboBoxStyle.DropDownList };
+            Label lblAlgo = TaoNhan("2. Thuật toán giải:", fontTieuDe);
+            _cboThuatToan = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Font = fontThuong };
             _cboThuatToan.Items.AddRange(new object[] { "Heuristic Warnsdorff", "Quay lui thuần (Backtracking)" });
             _cboThuatToan.SelectedIndex = 0;
 
-            _lblToaDo = new Label { Text = "Xuất phát: (0, 0)\n(Click vào ô trên bàn cờ để chọn)", AutoSize = true, Location = new Point(15, 132), Font = fontThuong };
+            _lblToaDo = TaoNhan("Xuất phát: (0, 0)\n(Click vào ô trên bàn cờ để chọn)", fontThuong);
 
             _btnBatDau = new Button
             {
                 Text = "▶ Bắt đầu",
-                Location = new Point(15, 178),
-                Size = new Size(210, 40),
+                Height = S(42),
                 BackColor = Color.SeaGreen,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
@@ -93,44 +118,55 @@ namespace MoPhongMaDiTuan.GiaoDien
             };
             _btnBatDau.Click += BtnBatDau_Click;
 
-            _btnTamDung = new Button { Text = "⏸ Tạm dừng", Location = new Point(15, 224), Size = new Size(102, 34), Font = fontThuong, Cursor = Cursors.Hand };
+            // Hai nút Tạm dừng và Từng bước nằm cùng một hàng, mỗi nút chiếm một nửa bề rộng
+            TableLayoutPanel hangNut = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Height = S(40), Padding = Padding.Empty };
+            hangNut.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            hangNut.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            _btnTamDung = new Button { Text = "⏸ Tạm dừng", Dock = DockStyle.Fill, Font = fontThuong, Cursor = Cursors.Hand, Margin = new Padding(0, 0, S(3), 0) };
             _btnTamDung.Click += BtnTamDung_Click;
-
-            _btnTungBuoc = new Button { Text = "⏭ Từng bước", Location = new Point(123, 224), Size = new Size(102, 34), Font = fontThuong, Cursor = Cursors.Hand };
+            _btnTungBuoc = new Button { Text = "⏭ Từng bước", Dock = DockStyle.Fill, Font = fontThuong, Cursor = Cursors.Hand, Margin = new Padding(S(3), 0, 0, 0) };
             _btnTungBuoc.Click += BtnTungBuoc_Click;
+            hangNut.Controls.Add(_btnTamDung, 0, 0);
+            hangNut.Controls.Add(_btnTungBuoc, 1, 0);
 
-            _btnLamLai = new Button { Text = "↺ Làm lại", Location = new Point(15, 264), Size = new Size(210, 34), Font = fontThuong, Cursor = Cursors.Hand };
+            _btnLamLai = new Button { Text = "↺ Làm lại", Height = S(36), Font = fontThuong, Cursor = Cursors.Hand };
             _btnLamLai.Click += (s, e) => LamLai();
 
-            Label lblTocDoTieuDe = new Label { Text = "3. Tốc độ mô phỏng:", AutoSize = true, Location = new Point(15, 310), Font = fontTieuDe };
-            _trkTocDo = new TrackBar { Location = new Point(15, 332), Width = 210, Minimum = 1, Maximum = 10, Value = 4, TickFrequency = 1 };
+            Label lblTocDoTieuDe = TaoNhan("3. Tốc độ mô phỏng:", fontTieuDe);
+            _trkTocDo = new TrackBar { Minimum = 1, Maximum = 10, Value = 4, TickFrequency = 1 };
             _trkTocDo.ValueChanged += (s, e) => CapNhatTocDo();
-            _lblTocDo = new Label { AutoSize = true, Location = new Point(15, 380), Font = fontThuong };
+            _lblTocDo = TaoNhan("", fontThuong);
 
-            Label lblThongKe = new Label { Text = "4. Thống kê:", AutoSize = true, Location = new Point(15, 412), Font = fontTieuDe };
-            _lblSoNuocThu = new Label { AutoSize = true, Location = new Point(15, 436), Font = fontThuong };
-            _lblSoLanQuayLui = new Label { AutoSize = true, Location = new Point(15, 458), Font = fontThuong };
-            _lblThoiGian = new Label { AutoSize = true, Location = new Point(15, 480), Font = fontThuong };
+            Label lblThongKe = TaoNhan("4. Thống kê:", fontTieuDe);
+            _lblSoNuocThu = TaoNhan("", fontThuong);
+            _lblSoLanQuayLui = TaoNhan("", fontThuong);
+            _lblThoiGian = TaoNhan("", fontThuong);
 
-            Label lblChuThich = new Label
-            {
-                Text = "Vàng: quân mã đang đứng\nXanh lá: ô đã đi qua\nĐỏ: ô vừa bị gỡ khi quay lui",
-                AutoSize = true,
-                Location = new Point(15, 512),
-                Font = new Font("Segoe UI", 8.5f),
-                ForeColor = Color.DimGray
-            };
+            Label lblChuThich = TaoNhan("Vàng: quân mã đang đứng\nXanh lá: ô đã đi qua\nĐỏ: ô vừa bị gỡ khi quay lui", new Font("Segoe UI", 8.5f));
+            lblChuThich.ForeColor = Color.DimGray;
 
-            _lblTrangThai = new Label { Text = "Trạng thái: Sẵn sàng", AutoSize = true, MaximumSize = new Size(215, 0), Location = new Point(15, 570), Font = new Font("Segoe UI", 9.5f, FontStyle.Italic), ForeColor = Color.DarkBlue };
+            _lblTrangThai = TaoNhan("Trạng thái: Sẵn sàng", new Font("Segoe UI", 9.5f, FontStyle.Italic));
+            _lblTrangThai.ForeColor = Color.DarkBlue;
 
-            pnlRight.Controls.AddRange(new Control[]
-            {
-                lblSize, _cboKichThuoc, lblAlgo, _cboThuatToan, _lblToaDo,
-                _btnBatDau, _btnTamDung, _btnTungBuoc, _btnLamLai,
-                lblTocDoTieuDe, _trkTocDo, _lblTocDo,
-                lblThongKe, _lblSoNuocThu, _lblSoLanQuayLui, _lblThoiGian,
-                lblChuThich, _lblTrangThai
-            });
+            pnlRight.SuspendLayout();
+            Them(lblSize, 6, false);
+            Them(_cboKichThuoc, 2);
+            Them(lblAlgo, 12, false);
+            Them(_cboThuatToan, 2);
+            Them(_lblToaDo, 10, false);
+            Them(_btnBatDau, 12);
+            Them(hangNut, 6);
+            Them(_btnLamLai, 6);
+            Them(lblTocDoTieuDe, 16, false);
+            Them(_trkTocDo, 2);
+            Them(_lblTocDo, 0, false);
+            Them(lblThongKe, 16, false);
+            Them(_lblSoNuocThu, 4, false);
+            Them(_lblSoLanQuayLui, 2, false);
+            Them(_lblThoiGian, 2, false);
+            Them(lblChuThich, 14, false);
+            Them(_lblTrangThai, 12, false);
+            pnlRight.ResumeLayout();
 
             // --- BÀN CỜ BÊN TRÁI ---
             _boardView = new BoardView
