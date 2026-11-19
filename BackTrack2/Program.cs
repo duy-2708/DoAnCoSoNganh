@@ -70,10 +70,12 @@ namespace BackTrack2
                     }
                     Console.WriteLine();
                 }
+                Console.WriteLine($"So lan quay lui: {dem}");
             }
             else
             {
                 Console.WriteLine("Khong tim thay duong di!");
+                Console.WriteLine($"So lan quay lui: {dem}");
             }
         }
     }

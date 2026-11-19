@@ -76,7 +76,7 @@
             if (GiaiMaDiTuan(0, 0, 1))
             {
                 Console.WriteLine($"Tim thay hanh trinh Warnsdorff tren ban {N}x{N}:\n");
-                Console.WriteLine($"Tong so lan thuc hien {dem}");
+                Console.WriteLine($"So lan quay lui: {dem}");
                 for (int i = 0; i < N; i++)
                 {
                     for (int j = 0; j < N; j++)
